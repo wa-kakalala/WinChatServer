@@ -136,6 +136,7 @@
     <ClInclude Include="sqlite3.h" />
     <ClInclude Include="SQLiteOp.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="types.h" />
     <ClInclude Include="WinChatServer.h" />
   </ItemGroup>
   <ItemGroup>

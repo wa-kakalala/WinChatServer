@@ -4,6 +4,7 @@
 #include "WinChatServer.h"
 #include <stdio.h>
 #include <winsock2.h>
+#include "types.h"
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
 
@@ -12,6 +13,8 @@
 #define EDIT_STYLE       (WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | \
                          ES_MULTILINE | WS_HSCROLL | WS_VSCROLL)
 #define WINCHAT_MAX_BUF  512
+#define WINCHAT_MAX_DATA 1024
+#define MAX_USER_NUM     100
 #define WIN_CHAT_NOTIFY  (WM_USER + 10) /* 自定义socket消息 */
 #define WINCHAT_UDP_PORT 6666
 
@@ -21,6 +24,8 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 HWND hWndLog;                                   // 日志信息窗口句柄
 SOCKET udpSoc = INVALID_SOCKET;                 // Ser updSoc
+char  WinChatBuf[WINCHAT_MAX_DATA];            // 接收数据缓冲区
+WC_USER_INFO UserInfo[MAX_USER_NUM];            // 记录用户信息
 
 // 此代码模块中包含的函数的前向声明:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -43,11 +48,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     int err;
     WSADATA     wsaData;
     err = WSAStartup(WINSOCK_VERSION, &wsaData); /* 初始化 */
-    if (!err) return 0;
+    if (err) return 0;
     
     // 初始化全局字符串
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_WINCHATSERVER, szWindowClass, MAX_LOADSTRING);
+    LoadString(hInstance, IDS_APP_TITLE, (LPTSTR)szTitle, MAX_LOADSTRING);
+    LoadString(hInstance, IDC_WINCHATSERVER, (LPTSTR)szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // 执行应用程序初始化:
@@ -245,5 +250,10 @@ void WinChatUDPSocketNotify(WPARAM wParam, LPARAM lParam) {
 }
 
 void WinChatUDPController(SOCKET udpsoc) {
-
+    struct sockaddr_in peer_addr;
+    int datalen,addr_len = sizeof(peer_addr);
+    datalen = recvfrom(udpsoc, WinChatBuf, WINCHAT_MAX_DATA, 0,
+        (struct sockaddr*)&peer_addr, &addr_len);
+    WinChatBuf[datalen] = 0;
+    LogPrintf("%s\r\n", WinChatBuf);
 }
