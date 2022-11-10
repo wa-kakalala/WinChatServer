@@ -36,12 +36,18 @@
     <ClInclude Include="types.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="UserDataArray.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinChatServer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="SQLiteOp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UserDataArray.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

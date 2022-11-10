@@ -29,7 +29,6 @@ int dll_init() {
 	return 0;
 }
 
-
 /**
 * ²Î¿¼
 * http://t.csdn.cn/eVNYK

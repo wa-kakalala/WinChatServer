@@ -6,6 +6,7 @@
 #include <winsock2.h>
 #include "types.h"
 #include "SQLiteOp.h"
+#include "UserDataArray.h"
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
 
@@ -15,7 +16,7 @@
                          ES_MULTILINE | WS_HSCROLL | WS_VSCROLL)
 #define WINCHAT_MAX_BUF  512
 #define WINCHAT_MAX_DATA 1024
-#define MAX_USER_NUM     100
+
 #define WIN_CHAT_NOTIFY  (WM_USER + 10) /* 自定义socket消息 */
 #define WINCHAT_UDP_PORT 6666
 #define DB_FILENAME       ("./model/WinChatDB")
@@ -28,7 +29,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 HWND hWndLog;                                   // 日志信息窗口句柄
 SOCKET udpSoc = INVALID_SOCKET;                 // Ser updSoc
 char  WinChatBuf[WINCHAT_MAX_DATA];            // 接收数据缓冲区
-WC_USER_INFO UserInfo[MAX_USER_NUM];            // 记录用户信息
+
 
 
 // 此代码模块中包含的函数的前向声明:
@@ -81,7 +82,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
-
+    delete_all_users();
     db_defer();
     closesocket(udpSoc);
     WSACleanup();
@@ -275,7 +276,7 @@ void WinChatShowAllUsers() {
     char** pres = NULL;
     db_get_useinfo(NULL, &nrow, &ncol, &pres);
     LogPrintf("--**************--\r\n");
-    LogPrintf("%s\t%s\r\n",*(pres), *(pres + 1));
+    LogPrintf("%s\t%s\r\n","用户ID","用户名");
     for (i = 0; i < nrow; i++) {
         userid = atoi(*(pres + (i + 1) * ncol));
         LogPrintf("%05d\t%s\r\n", userid, *(pres+(i + 1) * ncol+1));
