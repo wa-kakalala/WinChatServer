@@ -1,0 +1,7 @@
+CREATE TABLE USERINFO(
+USERID integer primary key autoincrement,
+USERNAME  nvarchar(50),
+USERPWD   varchar(50),
+USERSEX   integer,
+USERAGE   integer,
+USERDES   nvarchar(100));

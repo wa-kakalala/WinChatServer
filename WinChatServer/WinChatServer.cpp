@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <winsock2.h>
 #include "types.h"
+#include "SQLiteOp.h"
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
 
@@ -17,6 +18,8 @@
 #define MAX_USER_NUM     100
 #define WIN_CHAT_NOTIFY  (WM_USER + 10) /* 自定义socket消息 */
 #define WINCHAT_UDP_PORT 6666
+#define DB_FILENAME       ("./model/WinChatDB")
+
 
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
@@ -27,6 +30,7 @@ SOCKET udpSoc = INVALID_SOCKET;                 // Ser updSoc
 char  WinChatBuf[WINCHAT_MAX_DATA];            // 接收数据缓冲区
 WC_USER_INFO UserInfo[MAX_USER_NUM];            // 记录用户信息
 
+
 // 此代码模块中包含的函数的前向声明:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -36,6 +40,7 @@ void LogPrintf(const TCHAR* szFormat, ...); // 日志输出
 SOCKET WinChatCreateUdpSoc(HWND hWnd, unsigned short port); // 创建udp套接字
 void WinChatUDPSocketNotify(WPARAM wParam, LPARAM lParam);  // 处理WSAAsyncSelect 
 void WinChatUDPController(SOCKET udpsoc);                   // 消息控制器
+void WinChatShowAllUsers();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -49,7 +54,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     WSADATA     wsaData;
     err = WSAStartup(WINSOCK_VERSION, &wsaData); /* 初始化 */
     if (err) return 0;
-    
+    err = db_init(DB_FILENAME);
+    if (err == -1) return 0;
+
     // 初始化全局字符串
     LoadString(hInstance, IDS_APP_TITLE, (LPTSTR)szTitle, MAX_LOADSTRING);
     LoadString(hInstance, IDC_WINCHATSERVER, (LPTSTR)szWindowClass, MAX_LOADSTRING);
@@ -74,6 +81,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+    db_defer();
     closesocket(udpSoc);
     WSACleanup();
     return (int) msg.wParam;
@@ -121,9 +130,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int cxClient, cyClient;
+    int res;
     switch (message){
     case WM_CREATE:
         hWndLog = CreateWindow(TEXT("edit"), NULL, EDIT_STYLE, 0, 0, 0,0, hWnd, (HMENU)ID_EDIT_LOG, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
+        WinChatShowAllUsers();
         return 0;
     case WIN_CHAT_NOTIFY:
         WinChatUDPSocketNotify(wParam, lParam);
@@ -256,4 +267,19 @@ void WinChatUDPController(SOCKET udpsoc) {
         (struct sockaddr*)&peer_addr, &addr_len);
     WinChatBuf[datalen] = 0;
     LogPrintf("%s\r\n", WinChatBuf);
+}
+
+void WinChatShowAllUsers() {
+    int nrow, ncol, i;
+    int userid;
+    char** pres = NULL;
+    db_get_useinfo(NULL, &nrow, &ncol, &pres);
+    LogPrintf("--**************--\r\n");
+    LogPrintf("%s\t%s\r\n",*(pres), *(pres + 1));
+    for (i = 0; i < nrow; i++) {
+        userid = atoi(*(pres + (i + 1) * ncol));
+        LogPrintf("%05d\t%s\r\n", userid, *(pres+(i + 1) * ncol+1));
+    }
+    LogPrintf("--**************--\r\n");
+    sqldb_free_table(pres);
 }

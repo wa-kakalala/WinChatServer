@@ -1,4 +1,3 @@
 ﻿  WinChatServer.cpp
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\types.h(30,2): warning C4091: “typedef ”: 没有声明变量时忽略“WC_USER_INFO”的左侧
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\types.h(36,2): warning C4091: “typedef ”: 没有声明变量时忽略“WC_MSG_HDR”的左侧
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\WinChatServer.cpp(140,9): warning C4101: “res”: 未引用的局部变量
   WinChatServer.vcxproj -> C:\Users\29620\Desktop\WinChat\WinChatServer\x64\Debug\WinChatServer.exe

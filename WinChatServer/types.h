@@ -27,10 +27,10 @@ typedef struct WC_USER_INFO {
 	char* user_ip;
 	unsigned short user_port;
 	unsigned char user_status;
-};// WC_USER_INFO
+}WC_USER_INFO;// WC_USER_INFO
 
 // common format
 typedef struct WC_MSG_HDR {
 	unsigned char type;
 	unsigned short len;
-};// WC_USER_INFO
+}WC_MSG_HDR;// WC_USER_INFO
