@@ -131,6 +131,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="authentication.h" />
+    <ClInclude Include="crc.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="sqlite3.h" />
@@ -142,6 +144,8 @@
     <ClInclude Include="WinChatServer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="authentication.cpp" />
+    <ClCompile Include="crc.cpp" />
     <ClCompile Include="SQLiteOp.cpp" />
     <ClCompile Include="UserDataArray.cpp" />
     <ClCompile Include="UserInfoArray.cpp" />

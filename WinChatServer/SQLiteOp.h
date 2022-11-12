@@ -42,4 +42,5 @@ void db_defer();
 int db_add_user(const char* username, const char* userpwd);
 int is_user_exist(const char* username);
 int db_get_useinfo(const char* username, int* nrow, int* ncol, char*** pres);
+int db_get_userid(const char* username);
 

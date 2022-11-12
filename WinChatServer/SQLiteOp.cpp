@@ -84,6 +84,21 @@ int db_get_useinfo(const char * username,int * nrow,int *ncol,char *** pres)
 	return 0;
 }
 
+int db_get_userid(const char* username) {
+	int nrow, ncol;
+	int userid;
+	char** pres = NULL;
+	db_get_useinfo(username, &nrow, &ncol, &pres);
+	sqldb_free_table(pres);
+	if (nrow) {
+		userid = atoi(pres[(nrow + 1) * ncol]);
+	}else {
+		userid = -1;
+	}
+	sqldb_free_table(pres);
+	return userid;
+}
+
 /**
 * 根据用户名查询对应的用户是否存在
 */

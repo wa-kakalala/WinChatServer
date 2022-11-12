@@ -1,4 +1,3 @@
-﻿  UserInfoArray.cpp
-  WinChatServer.cpp
-  正在生成代码...
+﻿  WinChatServer.cpp
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\types.h(36,2): warning C4091: “typedef ”: 没有声明变量时忽略“WC_LOGIN_COMMON_HDR”的左侧
   WinChatServer.vcxproj -> C:\Users\29620\Desktop\WinChat\WinChatServer\x64\Debug\WinChatServer.exe

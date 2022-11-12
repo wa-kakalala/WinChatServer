@@ -8,6 +8,7 @@
 #include "SQLiteOp.h"
 #include "UserInfoArray.h"
 #include "UserDataArray.h"
+#include "authentication.h"
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
 
@@ -16,6 +17,7 @@
 #define EDIT_STYLE       (WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | \
                          ES_MULTILINE | WS_HSCROLL | WS_VSCROLL)
 #define WINCHAT_MAX_BUF  512
+#define WINCHAT_TEMP_BUF 128
 #define WINCHAT_MAX_DATA 1024
 
 #define WIN_CHAT_NOTIFY  (WM_USER + 10) /* 自定义socket消息 */
@@ -29,7 +31,9 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 HWND hWndLog;                                   // 日志信息窗口句柄
 SOCKET udpSoc = INVALID_SOCKET;                 // Ser updSoc
-char  WinChatBuf[WINCHAT_MAX_DATA];            // 接收数据缓冲区
+char  WinChatBuf[WINCHAT_MAX_DATA];             // 接收数据缓冲区
+WC_MSG_HDR *msg_hdr;                            // 消息通用头部
+
 
 
 
@@ -43,6 +47,9 @@ SOCKET WinChatCreateUdpSoc(HWND hWnd, unsigned short port); // 创建udp套接�
 void WinChatUDPSocketNotify(WPARAM wParam, LPARAM lParam);  // 处理WSAAsyncSelect 
 void WinChatUDPController(SOCKET udpsoc);                   // 消息控制器
 void WinChatShowAllUsers();
+int WinChatLoginProc(const char* data, unsigned short datalen, struct sockaddr_in* peer_addr); // 登陆事件处理函数
+int LoginProcUser(const char* namedata, struct sockaddr_in* peer_addr); 
+int LoingProc_SendAuth(int userinfo_index); // 发送认证消息
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -267,10 +274,51 @@ void WinChatUDPController(SOCKET udpsoc) {
     int datalen,addr_len = sizeof(peer_addr);
     datalen = recvfrom(udpsoc, WinChatBuf, WINCHAT_MAX_DATA, 0,
         (struct sockaddr*)&peer_addr, &addr_len);
+    msg_hdr = (WC_MSG_HDR*)WinChatBuf;
+    switch (msg_hdr->type) {
+        case WC_TYPE_LOGIN:
+            LogPrintf("%s:%d 正在请求登陆...\r\n", inet_ntoa(peer_addr.sin_addr), ntohs(peer_addr.sin_port));
+            WinChatLoginProc(WinChatBuf + sizeof(WC_MSG_HDR), msg_hdr->len, &peer_addr);
+            break;
+    }
     WinChatBuf[datalen] = 0;
-    LogPrintf("%s\r\n", WinChatBuf);
+    LogPrintf("%s\r\n", WinChatBuf+1);
 }
 
+int WinChatLoginProc(const char* data, unsigned short datalen, struct sockaddr_in* peer_addr) {
+    WC_LOGIN_COMMON_HDR* common_hdr = (WC_LOGIN_COMMON_HDR*)data;
+    int res;
+    switch (common_hdr->login_type) {
+        case LOING_TYPE:
+            res = LoginProcUser(data + sizeof(common_hdr), peer_addr);
+            if (res != -1) {
+                LoingProc_SendAuth(res);
+            }
+
+            
+            break;
+
+
+    }
+    return 0;
+}
+
+int LoginProcUser(const char* namedata, struct sockaddr_in* peer_addr) {
+    WC_LOGIN_HDR* login_hdr = (WC_LOGIN_HDR*)namedata;
+    int index = 0;
+    int userid = db_get_userid(namedata + sizeof(WC_LOGIN_HDR));
+    if (userid == -1) {
+        index = -1;
+    }else {
+        index = add_user(namedata + sizeof(WC_LOGIN_HDR), userid, inet_ntoa(peer_addr->sin_addr),
+            ntohs(peer_addr->sin_port));
+    }
+    return index;
+}
+
+int LoingProc_SendAuth(int userinfo_index) {
+    return 0;
+}
 void WinChatShowAllUsers() {
     int nrow, ncol, i;
     int userid;
@@ -284,4 +332,12 @@ void WinChatShowAllUsers() {
     }
     LogPrintf("--**************--\r\n");
     sqldb_free_table(pres);
+
+    char buf[1024];
+    int authlen = generate_auth_data(buf);
+    for (int i = 0; i < authlen; i++) {
+        LogPrintf("%d\r\n", *(buf+i));
+    }
+   
+
 }
