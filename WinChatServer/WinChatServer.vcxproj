@@ -138,11 +138,13 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="UserDataArray.h" />
+    <ClInclude Include="UserInfoArray.h" />
     <ClInclude Include="WinChatServer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SQLiteOp.cpp" />
     <ClCompile Include="UserDataArray.cpp" />
+    <ClCompile Include="UserInfoArray.cpp" />
     <ClCompile Include="WinChatServer.cpp" />
   </ItemGroup>
   <ItemGroup>

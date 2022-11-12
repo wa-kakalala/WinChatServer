@@ -36,6 +36,9 @@
     <ClInclude Include="types.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="UserInfoArray.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="UserDataArray.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -45,6 +48,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="SQLiteOp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UserInfoArray.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="UserDataArray.cpp">

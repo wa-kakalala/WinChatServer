@@ -1,9 +1,4 @@
-﻿  SQLiteOp.cpp
-  UserDataArray.cpp
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserDataArray.cpp(41,39): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserDataArray.cpp(42,42): warning C4267: “初始化”: 从“size_t”转换到“unsigned int”，可能丢失数据
+﻿  UserInfoArray.cpp
   WinChatServer.cpp
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\WinChatServer.cpp(134,9): warning C4101: “res”: 未引用的局部变量
   正在生成代码...
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserDataArray.cpp(36): warning C4715: “delete_user”: 不是所有的控件路径都返回值
   WinChatServer.vcxproj -> C:\Users\29620\Desktop\WinChat\WinChatServer\x64\Debug\WinChatServer.exe

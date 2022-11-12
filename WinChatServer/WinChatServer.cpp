@@ -6,6 +6,7 @@
 #include <winsock2.h>
 #include "types.h"
 #include "SQLiteOp.h"
+#include "UserInfoArray.h"
 #include "UserDataArray.h"
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
@@ -83,6 +84,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
     delete_all_users();
+    delete_all_userdata();
     db_defer();
     closesocket(udpSoc);
     WSACleanup();
@@ -131,7 +133,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int cxClient, cyClient;
-    int res;
     switch (message){
     case WM_CREATE:
         hWndLog = CreateWindow(TEXT("edit"), NULL, EDIT_STYLE, 0, 0, 0,0, hWnd, (HMENU)ID_EDIT_LOG, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
