@@ -1,5 +1,6 @@
 #include "SQLiteOp.h"
 #include <Windows.h>
+#include <string.h>
 
 SQLDB_OPEN_FUNC sqldb_open = NULL;
 SQLDB_CLOSE_FUNC sqldb_close = NULL;
@@ -89,14 +90,29 @@ int db_get_userid(const char* username) {
 	int userid;
 	char** pres = NULL;
 	db_get_useinfo(username, &nrow, &ncol, &pres);
-	sqldb_free_table(pres);
 	if (nrow) {
-		userid = atoi(pres[(nrow + 1) * ncol]);
+		userid = atoi(pres[ ncol]);
 	}else {
 		userid = -1;
 	}
 	sqldb_free_table(pres);
 	return userid;
+}
+
+int db_get_userpwd(const char* username,char * userpwd,int buflen) {
+	int nrow, ncol;
+	int res;
+	char** pres = NULL;
+	db_get_useinfo(username, &nrow, &ncol, &pres);
+	if (nrow) {
+		strcpy_s(userpwd, buflen, pres[ncol + 2]);
+		res =  0;
+	}
+	else {
+		res = -1;
+	}
+	sqldb_free_table(pres);
+	return res;
 }
 
 /**

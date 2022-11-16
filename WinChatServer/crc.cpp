@@ -11,7 +11,7 @@
  * Xorout:  0x0000000
  * Note:
  *****************************************************************************/
-unsigned int crc32(unsigned char* data, unsigned short length, int poly)
+unsigned int crc32(unsigned char* data, unsigned short length, unsigned int poly)
 {
     unsigned char i;
     int crc = 0xffffffff;  // Initial value

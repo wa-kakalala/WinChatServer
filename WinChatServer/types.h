@@ -14,13 +14,15 @@ enum WinChatTYPE {
 }; // WinChatTYPE
 
 enum WinChatLoginType {
-	LOGIN_ACK,
-	LOING_TYPE,
-	AUTH_0_TYPE, // server to client
-	AUTH_2_TYPE, // client to server
+	LOGIN_TYPE,
+	LOGIN_CHALLENGE_TYPE,
+	LOGIN_FAILED,
+	LOGIN_SUCCESS
+};
 
-	LOGIN_ERR_NOUSER = 10,
-	LOGIN_ERR_PWD,
+enum WinChatChallengeType {
+	NO_USER_TYPE,
+	CHALLENGE_TYPE
 };
 
 // common format
@@ -28,14 +30,28 @@ typedef struct WC_MSG_HDR {
 	unsigned char type;
 	unsigned short len;
 }WC_MSG_HDR;// WC_USER_INFO
+#define WC_MSG_HDR_LEN (sizeof(unsigned char ) + sizeof(unsigned short))
+
 
 
 // common login fromat
 typedef struct WC_LOGIN_COMMON_HDR {
 	unsigned char login_type;
-}; // WC_LOGIN_COMMON_HDR
+}WC_LOGIN_COMMON_HDR; // WC_LOGIN_COMMON_HDR
+#define WC_LOGIN_COMMON_HDR_LEN ( sizeof(unsigned char) )
 
 // login format
 typedef struct WC_LOGIN_HDR {
-	unsigned short len;
+	unsigned char len;
 }WC_LOGIN_HDR; // WC_LOGIN_HDR
+#define WC_LOGIN_HDR_LEN ( sizeof(unsigned char) )
+
+
+// msg txt formt
+typedef struct WC_MSG_TXT_HDR {
+	unsigned int fromID;
+	unsigned int toID;
+	unsigned short len;
+}WC_MSG_TXT_HDR;
+#define WC_MSG_TXT_HDR_LEN ( sizeof(unsigned int) *2 + sizeof(unsigned short) )
+
