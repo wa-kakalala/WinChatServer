@@ -25,7 +25,7 @@ int generate_auth_data(char* databuf) {
 			bitindex++;
 			startpos += 4;
 		}else { // 0 -> 2 字节数据
-			*(databuf +1+ bitindex / 8) = *(databuf+1 + bitindex / 8) & (~(0x01 << bitindex % 8));
+			*(databuf +1+ bitindex / 8) = *(databuf+1 + bitindex / 8) & (~(0x01 << (bitindex % 8)));
 			randdata_s = (short)(rand());
 			*((short*)startpos) = htons(randdata_s);
 			bitindex++;
@@ -43,7 +43,7 @@ unsigned int  get_auth_code(const char* authdata, const char* pwd) {
 	short data_s = 0;
 	const char * startpos = authdata + 1 + (N / 8) + (N % 8 ? 1 : 0);
 	for (int i = 0; i < N; i++) {
-		if (*(authdata + 1 + i / 8) & ((0x01 << (i % 8)))) {  // 1 -> 4字节
+		if (*(authdata + 1 + i / 8) & (0x01 << (i % 8))) {  // 1 -> 4字节
 			data_l = *(unsigned int*)startpos;
 			sumdata += ntohl(data_l);
 			//LogPrintf(hWndLog, "%u\r\n", ntohl(data_l));

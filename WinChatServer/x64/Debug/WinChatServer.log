@@ -1,3 +1,1 @@
-﻿  WinChatServer.cpp
-C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\WinChatServer.cpp(383,26): warning C4244: “=”: 从“u_short”转换到“unsigned char”，可能丢失数据
-  WinChatServer.vcxproj -> C:\Users\29620\Desktop\WinChat\WinChatServer\x64\Debug\WinChatServer.exe
+﻿
