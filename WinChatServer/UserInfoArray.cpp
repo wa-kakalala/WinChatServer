@@ -49,6 +49,7 @@ int delete_user_byindex(unsigned int index) {
 	UserInfo[index].user_ip = NULL;
 	UserInfo[index].user_status = WC_USR_INVALID;
 	UserInfo[index].challenge = 0;
+	UserInfo[index].user_port = 0;
 	UserNum--;
 	return 0;
 }

@@ -1,1 +1,4 @@
-﻿
+﻿  authentication.cpp
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\authentication.cpp(35,18): warning C4244: “return”: 从“__int64”转换到“int”，可能丢失数据
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\authentication.cpp(66,67): warning C4267: “参数”: 从“size_t”转换到“unsigned short”，可能丢失数据
+  WinChatServer.vcxproj -> C:\Users\29620\Desktop\WinChat\WinChatServer\x64\Debug\WinChatServer.exe

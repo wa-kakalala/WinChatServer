@@ -356,6 +356,7 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
             }
             //Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN,  WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN);
             datalen = WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN;
+            Debug_Log(data + WC_LOGIN_COMMON_HDR_LEN, 4 );
             challenge = ntohl(*((unsigned int*)(data + WC_LOGIN_COMMON_HDR_LEN)));
             LogPrintf(hWndLog, "get checkcode: %u\r\n", get_challenge_byindex(userIndex));
             LogPrintf(hWndLog, "get checkcode: %u\r\n", challenge);
@@ -388,11 +389,8 @@ int LoginProcUser(const char* namedata, struct sockaddr_in* peer_addr,char * use
         LogPrintf(hWndLog, "用户: %s 未注册\r\n", username);
         return -1;
     }
-    res = db_get_userpwd(username, userpwd, pwdlen);
-    if (res < 0) {
-        LogPrintf(hWndLog, "服务器满载工作，用户: %s 登陆失败\r\n", username);
-        return -1;
-    }
+    db_get_userpwd(username, userpwd, pwdlen);
+    
     res = search_user(userid);
     if (res != -1) delete_user_byindex(res);
     res = add_user(username, userid, inet_ntoa(peer_addr->sin_addr),
@@ -419,7 +417,7 @@ void WinChatShowAllUsers() {
 void Debug_Log(const char* data, unsigned int datalen) {
     LogPrintf(hWndLog, "------------\r\n");
     for (unsigned short  i = 0; i < datalen; i++) {
-        LogPrintf(hWndLog, "%x\r\n", *(data + i));
+        LogPrintf(hWndLog, "%d\r\n", *(data + i));
     }
     LogPrintf(hWndLog, "------------\r\n");
 }
@@ -429,3 +427,4 @@ void Pack_Common_Hdr(char* buf, unsigned char type, unsigned short len) {
     *((unsigned char*)buf) = type;
     *((unsigned short*)(buf + sizeof(unsigned char))) = htons(len);
 }
+
