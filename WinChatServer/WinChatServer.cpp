@@ -297,6 +297,7 @@ void WinChatUDPController(SOCKET udpsoc) {
         case WC_TYPE_MSG_TXT:
             WinChatMsgTxtProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len);
             break;
+        
     }
     
 }
@@ -355,23 +356,34 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
                 return -1;
             }
             //Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN,  WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN);
-            datalen = WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN;
+            datalen = WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN;
             Debug_Log(data + WC_LOGIN_COMMON_HDR_LEN, 4 );
             challenge = ntohl(*((unsigned int*)(data + WC_LOGIN_COMMON_HDR_LEN)));
             LogPrintf(hWndLog, "get checkcode: %u\r\n", get_challenge_byindex(userIndex));
             LogPrintf(hWndLog, "get checkcode: %u\r\n", challenge);
+            
             if (challenge != get_challenge_byindex(userIndex)) {       
                 LogPrintf(hWndLog, "用户: %s 认证失败，拒绝登陆\r\n", get_user_name_byindex(userIndex));
                 delete_user_byindex(userIndex);
-                *(WinChatBuf + WC_LOGIN_COMMON_HDR_LEN) = LOGIN_FAILED;
+                *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_FAILED;
+                Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN);
             }else {
                 LogPrintf(hWndLog, "用户: %s 认证成功\r\n", get_user_name_byindex(userIndex));
                 update_user_status_byIndex(userIndex, WC_USR_ON);
-                *(WinChatBuf + WC_LOGIN_COMMON_HDR_LEN) = LOGIN_SUCCESS;
+                *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_SUCCESS;
                 *((unsigned int*)(WinChatBuf + datalen)) = htonl(get_userid_byindex(userIndex));
+                LogPrintf(hWndLog, "用户: %s 的userid:%u\r\n", get_user_name_byindex(userIndex),get_userid_byindex(userIndex));
                 datalen += sizeof(unsigned int);
+                Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN+ sizeof(unsigned int));
             }
             datalen = sendto(udpSoc, WinChatBuf, datalen, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+            *WinChatBuf = WC_TYPE_MSG_TXT;
+            *((unsigned short*)(WinChatBuf + 1)) = htons(19); // len
+            *((unsigned int*)(WinChatBuf + 1 + 2)) = htonl(0xffffffff);
+            *((unsigned int*)(WinChatBuf + 1 + 2+4)) = htonl(get_userid_byindex(userIndex));
+            *((unsigned short*)(WinChatBuf + 1 + 2 + 4 + 4)) = htons(9);
+            strcpy_s(WinChatBuf + 1 + 2 + 4 + 4+2,256,"hello,wkk");
+            datalen = sendto(udpSoc, WinChatBuf, 22, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
             break;
     }
     return 0;

@@ -6,3 +6,5 @@ a small windows chat server software
 # Client
 
 Android: https://github.com/fumiama/WinChatAndroid
+
+windows: https://github.com/dreamingPainter/WSChatProClient
