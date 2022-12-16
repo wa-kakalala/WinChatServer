@@ -1,5 +1,6 @@
 #pragma once
 #include <stdio.h>
+#include <winsock2.h>
 
 // user status
 enum WinChatUsrStatus {
@@ -33,6 +34,10 @@ int search_user(unsigned int userid);
 unsigned char get_user_status_byindex(int index);
 char* get_user_ip_byindex(int index);
 unsigned short get_user_port_byindex(int index);
+int get_online_usersnum();
+unsigned int get_online_namespace();
+unsigned int get_online_userinfo(char* buf);
+int sendto_online_users(SOCKET udpSoc, char* buf, int buflen);
 
 
 

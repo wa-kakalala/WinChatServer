@@ -1,11 +1,14 @@
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "UserInfoArray.h"
 #include <string.h>
 #include <stdlib.h>
-#define MAX_USER_NUM     100
+#include "endianCov.h"
 
+#define MAX_USER_NUM     100
 WC_USER_INFO UserInfo[MAX_USER_NUM];            // 记录用户信息
 
 int UserNum; // 记录当前用户的数量
+unsigned int name_space; // 记录当前名字所占用的字节数
 
 /**
 * 默认就是这种状态
@@ -14,6 +17,8 @@ void userinfo_init() {
 	for (int i = 0; i < MAX_USER_NUM; i++) {
 		UserInfo[i].user_status = WC_USR_INVALID;  // 初始所有的都是无效的
 	}
+	UserNum = 0;
+	name_space = 0;
 }
 
 int search_user(unsigned int userid) {
@@ -43,6 +48,7 @@ int delete_user(unsigned int userid) {
 
 int delete_user_byindex(unsigned int index) {
 	if (UserInfo[index].user_status == WC_USR_INVALID) return -1;
+	name_space -= strlen(UserInfo[index].username);
 	free(UserInfo[index].username);
 	UserInfo[index].username = NULL;
 	free(UserInfo[index].user_ip);
@@ -50,7 +56,6 @@ int delete_user_byindex(unsigned int index) {
 	UserInfo[index].user_status = WC_USR_INVALID;
 	UserInfo[index].challenge = 0;
 	UserInfo[index].user_port = 0;
-	UserNum--;
 	return 0;
 }
 
@@ -68,6 +73,7 @@ int add_user(const char* username, unsigned int userid, const char* user_ip, uns
 	strcpy_s(user_temp.user_ip,ip_len+1,user_ip);
 	user_temp.user_ip[ip_len] = 0;
 	user_temp.username = (char*)malloc(name_len + 1);
+	
 	if (user_temp.username == NULL) {
 		free(user_temp.user_ip);
 		user_temp.user_ip = NULL;
@@ -75,7 +81,6 @@ int add_user(const char* username, unsigned int userid, const char* user_ip, uns
 	}
 	strcpy_s(user_temp.username,name_len+1, username);
 	user_temp.username[name_len] = 0;
-
 	int index = 0;
 	for ( ; index < MAX_USER_NUM; index++) {
 		if (UserInfo[index].user_status == WC_USR_INVALID) {
@@ -84,6 +89,7 @@ int add_user(const char* username, unsigned int userid, const char* user_ip, uns
 		}
 	}
 	UserNum++;
+	name_space += name_len + 1;
 	return index;
 }
 
@@ -133,6 +139,52 @@ unsigned int get_userid_byindex(int index) {
 
 unsigned char get_user_status_byindex(int index) {
 	return UserInfo[index].user_status;
+}
+
+int get_online_usersnum() {
+	return UserNum;
+	
+}
+
+unsigned int get_online_namespace() {
+	return name_space;
+}
+
+unsigned int get_online_userinfo(char* buf) {
+	int userNum_tmp = UserNum;
+	unsigned long long crc64 = 0;
+	char* start = buf;
+	unsigned short     namelen = 0;
+	for (int i = 0; (i < MAX_USER_NUM) && (userNum_tmp) > 0; i++) {
+		if (UserInfo[i].user_status != WC_USR_ON) continue;
+		crc64 = UserInfo[i].userid;
+		*((unsigned long long*)buf) = toNetEndian(crc64);
+		buf += sizeof(unsigned long long);
+		namelen = strlen(UserInfo[i].username);
+		*((unsigned short*)buf) = htons(namelen);
+		buf += sizeof(unsigned short);
+		strcpy_s(buf, namelen + 1, UserInfo[i].username);
+		buf += namelen;
+		userNum_tmp--;
+	}
+	return buf - start;
+	// 可以做个校验看看两者是否相等
+	// unsigned int space =  WC_GRP_ITEM_LEN * get_online_usersnum() + get_online_namespace()- get_online_usersnum();
+
+}
+
+int sendto_online_users(SOCKET udpSoc,char* buf, int buflen) {
+	int userNum_tmp = UserNum;
+	struct sockaddr_in peer_addr;
+	for (int i = 0; (i < MAX_USER_NUM) && (userNum_tmp) > 0; i++) {
+		if (UserInfo[i].user_status != WC_USR_ON) continue;
+		peer_addr.sin_family = AF_INET;
+		peer_addr.sin_port = htons(UserInfo[i].user_port);
+		peer_addr.sin_addr.s_addr = inet_addr(UserInfo[i].user_ip);
+		sendto(udpSoc, buf, buflen, 0, (sockaddr*)&peer_addr, sizeof(sockaddr));
+		userNum_tmp--;
+	}
+	return 1;
 }
 
 

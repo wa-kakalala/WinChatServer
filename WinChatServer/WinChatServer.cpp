@@ -56,6 +56,7 @@ int LoingProc_SendAuth(int userinfo_index);                              // 发�
 void Debug_Log(const char* data, unsigned int datalen);
 void Pack_Common_Hdr(char* buf, unsigned char type, unsigned short len); //通用数据头打包
 int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen);
+void Send_Online_UsersInfo();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -309,6 +310,7 @@ int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen) {
     
     int userIndex = 0;
     msg_txt_hdr.toID = ntohl(*((unsigned int*)(data + sizeof(unsigned int))));
+    LogPrintf(hWndLog, "toID: %d\r\n", msg_txt_hdr.toID);
     userIndex = search_user(msg_txt_hdr.toID);
     if (userIndex == -1 ) {
         LogPrintf(hWndLog, "ID为: %u 的用户处于离线状态\r\n", msg_txt_hdr.toID);
@@ -331,6 +333,7 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
     common_hdr.login_type = *(unsigned char*)data;
     int datalen, userIndex;
     unsigned int challenge = 0;
+    char challenge_ok = 0;
     switch (common_hdr.login_type) {
         case LOGIN_TYPE:
             userIndex =LoginProcUser(data + WC_LOGIN_COMMON_HDR_LEN, peer_addr, WinChatPwdBuf,WINCHAT_MAX_PWD);
@@ -367,6 +370,7 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
                 delete_user_byindex(userIndex);
                 *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_FAILED;
                 Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN);
+                challenge_ok = 0;
             }else {
                 LogPrintf(hWndLog, "用户: %s 认证成功\r\n", get_user_name_byindex(userIndex));
                 update_user_status_byIndex(userIndex, WC_USR_ON);
@@ -375,15 +379,18 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
                 LogPrintf(hWndLog, "用户: %s 的userid:%u\r\n", get_user_name_byindex(userIndex),get_userid_byindex(userIndex));
                 datalen += sizeof(unsigned int);
                 Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN+ sizeof(unsigned int));
+                challenge_ok = 1;
             }
             datalen = sendto(udpSoc, WinChatBuf, datalen, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
-            *WinChatBuf = WC_TYPE_MSG_TXT;
-            *((unsigned short*)(WinChatBuf + 1)) = htons(19); // len
-            *((unsigned int*)(WinChatBuf + 1 + 2)) = htonl(0xffffffff);
-            *((unsigned int*)(WinChatBuf + 1 + 2+4)) = htonl(get_userid_byindex(userIndex));
-            *((unsigned short*)(WinChatBuf + 1 + 2 + 4 + 4)) = htons(9);
-            strcpy_s(WinChatBuf + 1 + 2 + 4 + 4+2,256,"hello,wkk");
-            datalen = sendto(udpSoc, WinChatBuf, 22, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+            if(challenge_ok) Send_Online_UsersInfo();
+            
+            //*WinChatBuf = WC_TYPE_MSG_TXT;
+            //*((unsigned short*)(WinChatBuf + 1)) = htons(19); // len
+            //*((unsigned int*)(WinChatBuf + 1 + 2)) = htonl(0xffffffff);
+            //*((unsigned int*)(WinChatBuf + 1 + 2+4)) = htonl(get_userid_byindex(userIndex));
+            //*((unsigned short*)(WinChatBuf + 1 + 2 + 4 + 4)) = htons(9);
+            //strcpy_s(WinChatBuf + 1 + 2 + 4 + 4+2,256,"hello,wkk");
+            //datalen = sendto(udpSoc, WinChatBuf, 22, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
             break;
     }
     return 0;
@@ -438,5 +445,21 @@ void Debug_Log(const char* data, unsigned int datalen) {
 void Pack_Common_Hdr(char* buf, unsigned char type, unsigned short len) {
     *((unsigned char*)buf) = type;
     *((unsigned short*)(buf + sizeof(unsigned char))) = htons(len);
+}
+
+
+void Send_Online_UsersInfo() {
+    // 可以计算出实际所需的空间
+    //unsigned int space = WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN + WC_GRP_ITEM_LEN * get_online_usersnum() + get_online_namespace();
+    
+    unsigned int datalen = get_online_userinfo(WinChatBuf+WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
+    Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, htons(datalen));
+    char* grplist = WinChatBuf + WC_MSG_HDR_LEN;
+    *(grplist) = WC_LIST_NEWMSG;
+    grplist += sizeof(char);
+    *(unsigned int*)grplist = 0;
+    grplist += sizeof(unsigned int);
+    *(unsigned short*)grplist = htons(get_online_usersnum());
+    sendto_online_users(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN);
 }
 

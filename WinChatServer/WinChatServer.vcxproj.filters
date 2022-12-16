@@ -48,6 +48,9 @@
     <ClInclude Include="authentication.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="endianCov.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinChatServer.cpp">
@@ -66,6 +69,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="authentication.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="endianCov.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
