@@ -9,6 +9,7 @@
 #include "UserInfoArray.h"
 #include "UserDataArray.h"
 #include "authentication.h"
+#include "endianCov.h"
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
 
@@ -57,6 +58,7 @@ void Debug_Log(const char* data, unsigned int datalen);
 void Pack_Common_Hdr(char* buf, unsigned char type, unsigned short len); //通用数据头打包
 int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen);
 void Send_Online_UsersInfo();
+int WinChatMsgBinProc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -147,6 +149,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int cxClient, cyClient;
+    struct sockaddr localaddr;
+    int addrlen;
     switch (message){
     case WM_CREATE:
         hWndLog = CreateWindow(TEXT("edit"), NULL, EDIT_STYLE, 0, 0, 0, 0, hWnd, (HMENU)ID_EDIT_LOG, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
@@ -298,11 +302,35 @@ void WinChatUDPController(SOCKET udpsoc) {
         case WC_TYPE_MSG_TXT:
             WinChatMsgTxtProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len);
             break;
-        
+        case WC_TYPE_MSG_BIN:
+            WinChatMsgBinProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
+            break;
     }
     
 }
 
+int WinChatMsgBinProc(const char* data, unsigned short recvdatalen,struct sockaddr_in* peer_addr) {
+    unsigned int fromID;
+    unsigned int toID;
+    unsigned long long crc64;
+    unsigned short  filenameLen;
+    fromID = ntohl(*(unsigned int*)data);
+    data += sizeof(unsigned int);
+    toID = ntohl(*(unsigned int*)data);
+    data += sizeof(unsigned int);
+    crc64 = toHostEndian(*(unsigned long long*)data);
+    data += sizeof(unsigned long long);
+    filenameLen = ntohs(*(unsigned short*)data);
+
+    char* start = WinChatBuf + WC_MSG_HDR_LEN;
+    *(unsigned long long*)start = toNetEndian(crc64);
+    start += sizeof(unsigned long long);
+    *(unsigned short*)start = htons(6789);
+    int datalen = sizeof(unsigned long long) + sizeof(unsigned short);
+    Pack_Common_Hdr(WinChatBuf, WC_TYPE_MSG_BIN_ACK, datalen);
+    datalen = sendto(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+    return 0;
+}
 int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen) {
     WC_MSG_TXT_HDR msg_txt_hdr;
     struct sockaddr_in to_addr;

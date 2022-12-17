@@ -1,1 +1,22 @@
-﻿
+﻿  authentication.cpp
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\authentication.cpp(35,18): warning C4244: “return”: 从“__int64”转换到“int”，可能丢失数据
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\authentication.cpp(66,67): warning C4267: “参数”: 从“size_t”转换到“unsigned short”，可能丢失数据
+  crc.cpp
+  endianCov.cpp
+  SQLiteOp.cpp
+  UserDataArray.cpp
+  UserInfoArray.cpp
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserInfoArray.cpp(51,22): warning C4267: “-=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserInfoArray.cpp(92,25): warning C4267: “+=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserInfoArray.cpp(163,41): warning C4267: “=”: 从“size_t”转换到“unsigned short”，可能丢失数据
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\UserInfoArray.cpp(170,13): warning C4244: “return”: 从“__int64”转换到“unsigned int”，可能丢失数据
+  WinChatServer.cpp
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\types.h(61,2): warning C4091: “typedef ”: 没有声明变量时忽略“WC_GRP_LIST_HDR”的左侧
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\types.h(68,2): warning C4091: “typedef ”: 没有声明变量时忽略“WC_GRP_ITEM”的左侧
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\WinChatServer.cpp(152,21): warning C4101: “localaddr”: 未引用的局部变量
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\WinChatServer.cpp(153,9): warning C4101: “addrlen”: 未引用的局部变量
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\WinChatServer.cpp(431,26): warning C4244: “=”: 从“u_short”转换到“unsigned char”，可能丢失数据
+  正在生成代码...
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\endianCov.cpp(34): warning C4715: “toHostEndian”: 不是所有的控件路径都返回值
+C:\Users\29620\Desktop\WinChat\WinChatServer\WinChatServer\endianCov.cpp(18): warning C4715: “toNetEndian”: 不是所有的控件路径都返回值
+  WinChatServer.vcxproj -> C:\Users\29620\Desktop\WinChat\WinChatServer\x64\Debug\WinChatServer.exe
