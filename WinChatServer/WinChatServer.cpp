@@ -411,14 +411,6 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
             }
             datalen = sendto(udpSoc, WinChatBuf, datalen, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
             if(challenge_ok) Send_Online_UsersInfo();
-            
-            //*WinChatBuf = WC_TYPE_MSG_TXT;
-            //*((unsigned short*)(WinChatBuf + 1)) = htons(19); // len
-            //*((unsigned int*)(WinChatBuf + 1 + 2)) = htonl(0xffffffff);
-            //*((unsigned int*)(WinChatBuf + 1 + 2+4)) = htonl(get_userid_byindex(userIndex));
-            //*((unsigned short*)(WinChatBuf + 1 + 2 + 4 + 4)) = htons(9);
-            //strcpy_s(WinChatBuf + 1 + 2 + 4 + 4+2,256,"hello,wkk");
-            //datalen = sendto(udpSoc, WinChatBuf, 22, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
             break;
     }
     return 0;
