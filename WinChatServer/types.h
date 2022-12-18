@@ -71,6 +71,7 @@ typedef struct WC_GRP_ITEM {
 enum GrpListType {
 	WC_LIST_MEM		,
 	WC_LIST_FILE	,
+	WC_LIST_ONLINE  ,
 	WC_LIST_NEWMSG
 };
 

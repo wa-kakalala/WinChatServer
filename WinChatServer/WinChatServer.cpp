@@ -59,6 +59,8 @@ void Pack_Common_Hdr(char* buf, unsigned char type, unsigned short len); //通�
 int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen);
 void Send_Online_UsersInfo();
 int WinChatMsgBinProc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr);
+void Send_Online_Announcement(const char* announ, unsigned short announ_len);
+int WinChatMsgGrpLstPorc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -305,8 +307,33 @@ void WinChatUDPController(SOCKET udpsoc) {
         case WC_TYPE_MSG_BIN:
             WinChatMsgBinProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
             break;
+        case WC_TYPE_GRP_LST:
+            WinChatMsgGrpLstPorc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
+            break;
     }
     
+}
+
+int WinChatMsgGrpLstPorc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr) {
+    unsigned char lst_type = *(unsigned char*)data;
+    data += sizeof(unsigned char);
+    unsigned int  groupID = ntohl( * (unsigned int*)data);
+
+    unsigned int datalen = 0;
+    char* grplist = WinChatBuf + WC_MSG_HDR_LEN;
+
+    if (groupID == 0) {
+        datalen = get_online_userinfo(WinChatBuf + WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
+        Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, datalen);
+        
+        *(grplist) = WC_LIST_ONLINE;
+        grplist += sizeof(char);
+        *(unsigned int*)grplist = 0;
+        grplist += sizeof(unsigned int);
+        *(unsigned short*)grplist = htons(get_online_usersnum());
+        datalen = sendto(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+    }
+    return 1;
 }
 
 int WinChatMsgBinProc(const char* data, unsigned short recvdatalen,struct sockaddr_in* peer_addr) {
@@ -388,10 +415,8 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
             }
             //Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN,  WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN);
             datalen = WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN;
-            Debug_Log(data + WC_LOGIN_COMMON_HDR_LEN, 4 );
+            //Debug_Log(data + WC_LOGIN_COMMON_HDR_LEN, 4 );
             challenge = ntohl(*((unsigned int*)(data + WC_LOGIN_COMMON_HDR_LEN)));
-            LogPrintf(hWndLog, "get checkcode: %u\r\n", get_challenge_byindex(userIndex));
-            LogPrintf(hWndLog, "get checkcode: %u\r\n", challenge);
             
             if (challenge != get_challenge_byindex(userIndex)) {       
                 LogPrintf(hWndLog, "用户: %s 认证失败，拒绝登陆\r\n", get_user_name_byindex(userIndex));
@@ -410,7 +435,10 @@ int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockadd
                 challenge_ok = 1;
             }
             datalen = sendto(udpSoc, WinChatBuf, datalen, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
-            if(challenge_ok) Send_Online_UsersInfo();
+            if (challenge_ok) {
+                Send_Online_UsersInfo();
+                //Send_Online_Announcement("a new user goes online !", strlen("a new user goes online !"));
+            }
             break;
     }
     return 0;
@@ -473,12 +501,26 @@ void Send_Online_UsersInfo() {
     unsigned int datalen = get_online_userinfo(WinChatBuf+WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
     Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, datalen);
     char* grplist = WinChatBuf + WC_MSG_HDR_LEN;
-    *(grplist) = WC_LIST_NEWMSG;
+    *(grplist) = WC_LIST_ONLINE;
     grplist += sizeof(char);
     *(unsigned int*)grplist = 0;
     grplist += sizeof(unsigned int);
     *(unsigned short*)grplist = htons(get_online_usersnum());
     sendto_online_users(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN);
-    LogPrintf(hWndLog, "datalen:%d\r\n", datalen + WC_MSG_HDR_LEN);
+}
+
+
+void Send_Online_Announcement(const char * announ,unsigned short announ_len) {
+    LogPrintf(hWndLog, "%d,%s\r\n",  announ_len, announ);
+    memcpy_s(WinChatBuf + WC_MSG_TXT_HDR_LEN + WC_MSG_HDR_LEN, announ_len, announ, announ_len);
+    int datalen = WC_MSG_TXT_HDR_LEN + announ_len;
+    Pack_Common_Hdr(WinChatBuf, WC_TYPE_MSG_TXT, datalen);
+    char* ann = WinChatBuf + WC_MSG_HDR_LEN;
+    *(unsigned int*)ann = 0;
+    ann += sizeof(unsigned int) * 2;
+    *(unsigned short*)ann = htons(announ_len);
+
+    sendto_online_announcement(udpSoc, WinChatBuf, datalen+ WC_MSG_HDR_LEN);
+
 }
 

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "endianCov.h"
+#include "types.h"
 
 #define MAX_USER_NUM     100
 WC_USER_INFO UserInfo[MAX_USER_NUM];            // 记录用户信息
@@ -181,6 +182,23 @@ int sendto_online_users(SOCKET udpSoc,char* buf, int buflen) {
 		peer_addr.sin_family = AF_INET;
 		peer_addr.sin_port = htons(UserInfo[i].user_port);
 		peer_addr.sin_addr.s_addr = inet_addr(UserInfo[i].user_ip);
+		sendto(udpSoc, buf, buflen, 0, (sockaddr*)&peer_addr, sizeof(sockaddr));
+		userNum_tmp--;
+	}
+	return 1;
+}
+
+int sendto_online_announcement(SOCKET udpSoc, char* buf, int buflen) {
+	int userNum_tmp = UserNum;
+	struct sockaddr_in peer_addr;
+	char* ann_st = buf + WC_MSG_HDR_LEN + sizeof(unsigned int);
+	for (int i = 0; (i < MAX_USER_NUM) && (userNum_tmp) > 0; i++) {
+		if (UserInfo[i].user_status != WC_USR_ON) continue;
+		peer_addr.sin_family = AF_INET;
+		peer_addr.sin_port = htons(UserInfo[i].user_port);
+		peer_addr.sin_addr.s_addr = inet_addr(UserInfo[i].user_ip);
+		
+		*(unsigned int*)ann_st = htonl(UserInfo[i].userid);
 		sendto(udpSoc, buf, buflen, 0, (sockaddr*)&peer_addr, sizeof(sockaddr));
 		userNum_tmp--;
 	}

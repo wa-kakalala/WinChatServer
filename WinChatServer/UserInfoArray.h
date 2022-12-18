@@ -38,6 +38,7 @@ int get_online_usersnum();
 unsigned int get_online_namespace();
 unsigned int get_online_userinfo(char* buf);
 int sendto_online_users(SOCKET udpSoc, char* buf, int buflen);
+int sendto_online_announcement(SOCKET udpSoc, char* buf, int buflen);
 
 
 

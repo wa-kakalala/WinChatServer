@@ -42,29 +42,29 @@ unsigned int  get_auth_code(const char* authdata, const char* pwd) {
 	int   data_l = 0;
 	short data_s = 0;
 	const char * startpos = authdata + 1 + (N / 8) + (N % 8 ? 1 : 0);
-	LogPrintf(hWndLog, "数据个数:\r\n");
-	LogPrintf(hWndLog, "%d\r\n",*(authdata));
-	LogPrintf(hWndLog,"数据长度:\r\n");
-	for (int j = 0; j < (N / 8) + (N % 8 ? 1 : 0); j++)
-		LogPrintf(hWndLog,"%#x\r\n", *(authdata + 1 + j));
-	LogPrintf(hWndLog, "数据内容:\r\n");
+	//LogPrintf(hWndLog, "数据个数:\r\n");
+	//LogPrintf(hWndLog, "%d\r\n",*(authdata));
+	//LogPrintf(hWndLog,"数据长度:\r\n");
+	//for (int j = 0; j < (N / 8) + (N % 8 ? 1 : 0); j++)
+	//	LogPrintf(hWndLog,"%#x\r\n", *(authdata + 1 + j));
+	//LogPrintf(hWndLog, "数据内容:\r\n");
 	for (int i = 0; i < N; i++) {
 		if (*(authdata + 1 + i / 8) & (0x01 << (i % 8))) {  // 1 -> 4字节
 			data_l = *(unsigned int*)startpos;
 			sumdata += ntohl(data_l);
-			LogPrintf(hWndLog, "%u\r\n", ntohl(data_l));
+			//LogPrintf(hWndLog, "%u\r\n", ntohl(data_l));
 			
 			startpos += 4;
 		}else {  // 0 -> 2 字节
 			data_s = *(unsigned short*)startpos;
 			sumdata += ntohs(data_s);
-			LogPrintf(hWndLog, "%u\r\n", ntohs(data_s));
+			//LogPrintf(hWndLog, "%u\r\n", ntohs(data_s));
 			startpos += 2;
 		}
 	}
-	LogPrintf(hWndLog, "sumdata: %u,pwd: %s\r\n", sumdata,pwd);
+	//LogPrintf(hWndLog, "sumdata: %u,pwd: %s\r\n", sumdata,pwd);
 	sumdata = crc32((unsigned char *)pwd, strlen(pwd), sumdata | 0x01);
-	LogPrintf(hWndLog, "sumdata: %u,pwd: %s\r\n", sumdata, pwd);
+	//LogPrintf(hWndLog, "sumdata: %u,pwd: %s\r\n", sumdata, pwd);
 	return sumdata;
 }
 
