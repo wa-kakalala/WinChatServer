@@ -10,10 +10,11 @@ unsigned long long toNetEndian(unsigned long long num ) {
 	else {
 		unsigned long long res = 0;
 		ptest = (char*)(&num);
-		int numlen = sizeof(unsigned long);
+		int numlen = sizeof(unsigned long long);
 		for (int i = 0; i < numlen; i++) {
 			res += ((unsigned long long)(*(ptest + i))) << ((numlen - 1 - i)*8);
 		}
+		return res;
 	}
 }
 
@@ -26,9 +27,10 @@ unsigned long long toHostEndian(unsigned long long num) {
 	else {
 		unsigned long long res = 0;
 		ptest = (char*)(&num);
-		int numlen = sizeof(unsigned long);
+		int numlen = sizeof(unsigned long long);
 		for (int i = 0; i < numlen; i++) {
 			res += ((unsigned long)(*(ptest + i))) >> ((numlen - 1 - i) * 8);
 		}
+		return res;
 	}
 }

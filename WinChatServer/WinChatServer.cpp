@@ -442,13 +442,11 @@ void WinChatShowAllUsers() {
     int userid;
     char** pres = NULL;
     db_get_useinfo(NULL, &nrow, &ncol, &pres);
-    LogPrintf(hWndUser,"--**************--\r\n");
     LogPrintf(hWndUser,"%s\t%s\r\n","用户ID","用户名");
     for (i = 0; i < nrow; i++) {
         userid = atoi(*(pres + (i + 1) * ncol));
         LogPrintf(hWndUser,"%05d\t%s\r\n", userid, *(pres+(i + 1) * ncol+1));
     }
-    LogPrintf(hWndUser,"--**************--\r\n");
     sqldb_free_table(pres);
 }
 
@@ -473,7 +471,7 @@ void Send_Online_UsersInfo() {
     //unsigned int space = WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN + WC_GRP_ITEM_LEN * get_online_usersnum() + get_online_namespace();
     
     unsigned int datalen = get_online_userinfo(WinChatBuf+WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
-    Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, htons(datalen));
+    Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, datalen);
     char* grplist = WinChatBuf + WC_MSG_HDR_LEN;
     *(grplist) = WC_LIST_NEWMSG;
     grplist += sizeof(char);
@@ -481,5 +479,6 @@ void Send_Online_UsersInfo() {
     grplist += sizeof(unsigned int);
     *(unsigned short*)grplist = htons(get_online_usersnum());
     sendto_online_users(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN);
+    LogPrintf(hWndLog, "datalen:%d\r\n", datalen + WC_MSG_HDR_LEN);
 }
 
