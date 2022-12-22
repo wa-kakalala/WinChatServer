@@ -1,5 +1,6 @@
 ﻿// WinChatServer.cpp : 定义应用程序的入口点。
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include "framework.h"
 #include "WinChatServer.h"
 #include <stdio.h>
@@ -10,6 +11,8 @@
 #include "UserDataArray.h"
 #include "authentication.h"
 #include "endianCov.h"
+#include "windows.h"
+#include <time.h>
 
 #pragma comment(lib, "ws2_32.lib") /* WinSock使用的库函数 */
 
@@ -19,7 +22,7 @@
                          ES_MULTILINE | WS_HSCROLL | WS_VSCROLL)
 #define WINCHAT_MAX_BUF  512
 #define WINCHAT_TEMP_BUF 128
-#define WINCHAT_MAX_DATA 2048
+#define WINCHAT_MAX_DATA 65536
 
 #define WIN_CHAT_NOTIFY  (WM_USER + 10) /* 自定义socket消息 */
 #define WINCHAT_UDP_PORT 6666
@@ -61,11 +64,12 @@ void Send_Online_UsersInfo();
 int WinChatMsgBinProc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr);
 void Send_Online_Announcement(const char* announ, unsigned short announ_len);
 int WinChatMsgGrpLstPorc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr);
+DWORD CALLBACK RecvFilePorc(LPVOID pParam);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR    lpCmdLine,
+    _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -83,7 +87,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MyRegisterClass(hInstance);
 
     // 执行应用程序初始化:
-    if (!InitInstance (hInstance, nCmdShow))
+    if (!InitInstance(hInstance, nCmdShow))
     {
         return FALSE;
     }
@@ -106,54 +110,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     db_defer();
     closesocket(udpSoc);
     WSACleanup();
-    return (int) msg.wParam;
+    return (int)msg.wParam;
 }
 
 /**
 注册窗口类
 */
-ATOM MyRegisterClass(HINSTANCE hInstance){
+ATOM MyRegisterClass(HINSTANCE hInstance) {
     WNDCLASSEXW wcex;
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINCHATSERVER));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINCHATSERVER);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = hInstance;
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINCHATSERVER));
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WINCHATSERVER);
+    wcex.lpszClassName = szWindowClass;
+    wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
     return RegisterClassExW(&wcex);
 }
 
 
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // 将实例句柄存储在全局变量中
+    hInst = hInstance; // 将实例句柄存储在全局变量中
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    if (!hWnd)
+    {
+        return FALSE;
+    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
 
-   return TRUE;
+    return TRUE;
 }
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int cxClient, cyClient;
     struct sockaddr localaddr;
     int addrlen;
-    switch (message){
+    switch (message) {
     case WM_CREATE:
         hWndLog = CreateWindow(TEXT("edit"), NULL, EDIT_STYLE, 0, 0, 0, 0, hWnd, (HMENU)ID_EDIT_LOG, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
         hWndUser = CreateWindow(TEXT("edit"), NULL, EDIT_STYLE, 0, 0, 0, 0, hWnd, (HMENU)ID_EDIT_LOG, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
@@ -164,45 +169,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         WinChatUDPSocketNotify(wParam, lParam);
         return 0;
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            case IDM_START:
-                udpSoc = WinChatCreateUdpSoc(hWnd, WINCHAT_UDP_PORT);
-                if (udpSoc != INVALID_SOCKET) {
-                    LogPrintf(hWndLog,TEXT("WinChat server is running ...\r\n"));
-                }else {
-                    LogPrintf(hWndLog,TEXT("WinChat server starts error ...\r\n"));
-                }
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        case IDM_START:
+            udpSoc = WinChatCreateUdpSoc(hWnd, WINCHAT_UDP_PORT);
+            if (udpSoc != INVALID_SOCKET) {
+                LogPrintf(hWndLog, TEXT("WinChat server is running ...\r\n"));
             }
+            else {
+                LogPrintf(hWndLog, TEXT("WinChat server starts error ...\r\n"));
+            }
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        break;
+    }
+    break;
     case WM_SIZE:
         cxClient = LOWORD(lParam);
         cyClient = HIWORD(lParam);
-        MoveWindow(hWndLog, 0, 0, cxClient/3 *2, cyClient, FALSE);
-        MoveWindow(hWndUser, cxClient / 3 * 2, 0, cxClient- cxClient /3*2, cyClient/2, FALSE);
-        MoveWindow(hWndFile, cxClient / 3 * 2, cyClient / 2, cxClient - cxClient / 3 * 2, cyClient-cyClient / 2, FALSE);
-        
+        MoveWindow(hWndLog, 0, 0, cxClient / 3 * 2, cyClient, FALSE);
+        MoveWindow(hWndUser, cxClient / 3 * 2, 0, cxClient - cxClient / 3 * 2, cyClient / 2, FALSE);
+        MoveWindow(hWndFile, cxClient / 3 * 2, cyClient / 2, cxClient - cxClient / 3 * 2, cyClient - cyClient / 2, FALSE);
+
         return 0;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 在此处添加使用 hdc 的任何绘图代码...
-            EndPaint(hWnd, &ps);
-        }
-        break;
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        // TODO: 在此处添加使用 hdc 的任何绘图代码...
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -232,7 +238,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void LogPrintf(HWND hWnd,const TCHAR* szFormat, ...)
+void LogPrintf(HWND hWnd, const TCHAR* szFormat, ...)
 {
     int iBufLen = 0, iIndex;
     TCHAR szBuffer[WINCHAT_MAX_BUF];
@@ -241,7 +247,7 @@ void LogPrintf(HWND hWnd,const TCHAR* szFormat, ...)
 #ifdef UNICODE
     iBufLen = _vsnwprintf(szBuffer, FINGER_MAX_BUF, szFormat, pVaList);
 #else
-    iBufLen = _vsnprintf_s(szBuffer, WINCHAT_MAX_BUF, WINCHAT_MAX_BUF,szFormat, pVaList);
+    iBufLen = _vsnprintf_s(szBuffer, WINCHAT_MAX_BUF, WINCHAT_MAX_BUF, szFormat, pVaList);
 #endif
     va_end(pVaList);
     iIndex = GetWindowTextLength(hWnd);
@@ -251,7 +257,7 @@ void LogPrintf(HWND hWnd,const TCHAR* szFormat, ...)
 }
 
 SOCKET WinChatCreateUdpSoc(HWND hWnd, unsigned short port) {
-    struct sockaddr_in udpsoc_addr; 
+    struct sockaddr_in udpsoc_addr;
     SOCKET udpsoc;
     int result;
 
@@ -277,47 +283,47 @@ void WinChatUDPSocketNotify(WPARAM wParam, LPARAM lParam) {
     switch (wEvent) {
     case FD_READ:
         if (wError) {
-            LogPrintf(hWndLog,TEXT("FD_READ error #%i."), wError);
+            LogPrintf(hWndLog, TEXT("FD_READ error #%i."), wError);
             return;
         }
         WinChatUDPController(wParam);
         break;
     default:
-        LogPrintf(hWndLog,TEXT("Error event type\r\n"));
+        LogPrintf(hWndLog, TEXT("Error event type\r\n"));
     }
 }
 
 void WinChatUDPController(SOCKET udpsoc) {
     struct sockaddr_in peer_addr;
-    int datalen,addr_len = sizeof(peer_addr);
+    int datalen, addr_len = sizeof(peer_addr);
     datalen = recvfrom(udpsoc, WinChatBuf, WINCHAT_MAX_DATA, 0,
         (struct sockaddr*)&peer_addr, &addr_len);
     WinChatBuf[datalen] = '\0'; // append end flag
     // common msg type
     msg_hdr.type = *(char*)WinChatBuf;
     // common msg len
-    msg_hdr.len = ntohs( * (short*)(WinChatBuf + sizeof(char)));
+    msg_hdr.len = ntohs(*(short*)(WinChatBuf + sizeof(char)));
     switch (msg_hdr.type) {
-        case WC_TYPE_LOGIN:
-            WinChatLoginProc(WinChatBuf + WC_MSG_HDR_LEN , msg_hdr.len, &peer_addr);
-            break;
-        case WC_TYPE_MSG_TXT:
-            WinChatMsgTxtProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len);
-            break;
-        case WC_TYPE_MSG_BIN:
-            WinChatMsgBinProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
-            break;
-        case WC_TYPE_GRP_LST:
-            WinChatMsgGrpLstPorc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
-            break;
+    case WC_TYPE_LOGIN:
+        WinChatLoginProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
+        break;
+    case WC_TYPE_MSG_TXT:
+        WinChatMsgTxtProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len);
+        break;
+    case WC_TYPE_MSG_BIN:
+        WinChatMsgBinProc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
+        break;
+    case WC_TYPE_GRP_LST:
+        WinChatMsgGrpLstPorc(WinChatBuf + WC_MSG_HDR_LEN, msg_hdr.len, &peer_addr);
+        break;
     }
-    
+
 }
 
 int WinChatMsgGrpLstPorc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr) {
     unsigned char lst_type = *(unsigned char*)data;
     data += sizeof(unsigned char);
-    unsigned int  groupID = ntohl( * (unsigned int*)data);
+    unsigned int  groupID = ntohl(*(unsigned int*)data);
 
     unsigned int datalen = 0;
     char* grplist = WinChatBuf + WC_MSG_HDR_LEN;
@@ -325,7 +331,7 @@ int WinChatMsgGrpLstPorc(const char* data, unsigned short recvdatalen, struct so
     if (groupID == 0) {
         datalen = get_online_userinfo(WinChatBuf + WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
         Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, datalen);
-        
+
         *(grplist) = WC_LIST_ONLINE;
         grplist += sizeof(char);
         *(unsigned int*)grplist = 0;
@@ -336,7 +342,7 @@ int WinChatMsgGrpLstPorc(const char* data, unsigned short recvdatalen, struct so
     return 1;
 }
 
-int WinChatMsgBinProc(const char* data, unsigned short recvdatalen,struct sockaddr_in* peer_addr) {
+int WinChatMsgBinProc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr) {
     unsigned int fromID;
     unsigned int toID;
     unsigned long long crc64;
@@ -345,32 +351,153 @@ int WinChatMsgBinProc(const char* data, unsigned short recvdatalen,struct sockad
     data += sizeof(unsigned int);
     toID = ntohl(*(unsigned int*)data);
     data += sizeof(unsigned int);
-    crc64 = toHostEndian(*(unsigned long long*)data);
+    crc64 = ntohll(*(unsigned long long*)data);
     data += sizeof(unsigned long long);
     filenameLen = ntohs(*(unsigned short*)data);
 
+    struct sockaddr_in serv_addr;   /* 服务器地址  */
+    SOCKET  srv_soc = 0;
+    int namelen = sizeof(serv_addr);
+    srv_soc = socket(AF_INET, SOCK_STREAM, 0); /* 创建socket */
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(0);
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    bind(srv_soc, (struct sockaddr*)&serv_addr, namelen);
+    getsockname(srv_soc, (struct sockaddr*)&serv_addr, &namelen);
+
+    unsigned port = ntohs(serv_addr.sin_port);
+
     char* start = WinChatBuf + WC_MSG_HDR_LEN;
-    *(unsigned long long*)start = toNetEndian(crc64);
+    *(unsigned long long*)start = htonll(crc64);
     start += sizeof(unsigned long long);
-    *(unsigned short*)start = htons(6789);
+    *(unsigned short*)start = htons(port);
+
+    LogPrintf(hWndLog, "port:%d\r\n", port);
+
     int datalen = sizeof(unsigned long long) + sizeof(unsigned short);
     Pack_Common_Hdr(WinChatBuf, WC_TYPE_MSG_BIN_ACK, datalen);
+
+    DWORD nID = 0;
+    char* param = (char*)malloc(sizeof(unsigned int) * 2 + sizeof(unsigned long long) + sizeof(SOCKET));
+    char* param_temp = param;
+    *(unsigned int*)param = fromID;
+    param += sizeof(unsigned int);
+    *(unsigned int*)param = toID;
+    param += sizeof(unsigned int);
+    *(unsigned long long*)param = crc64;
+    param += sizeof(unsigned long long);
+    *(SOCKET*)param = srv_soc;
+
     datalen = sendto(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+    listen(srv_soc, SOMAXCONN);
+
+    HANDLE hThread = CreateThread(NULL, 0, RecvFilePorc, param_temp, 0, &nID);
     return 0;
 }
+
+DWORD CALLBACK RecvFilePorc(LPVOID pParam) {
+    char* param = (char*)pParam;
+    char* param_temp = param;
+    unsigned int fromID;
+    unsigned int toID;
+    unsigned long long crc64;
+    unsigned int datalen = 0;
+    SOCKET srv_soc;
+    fromID = *(unsigned int*)param;
+    param += sizeof(unsigned int);
+    toID = *(unsigned int*)param;
+    param += sizeof(unsigned int);
+    crc64 = *(unsigned long long*)param;
+    param += sizeof(unsigned long long);
+    srv_soc = *(SOCKET*)param;
+    free(param_temp);
+
+    LogPrintf(hWndLog, "from:%u,to:%u,crc64:%llu\r\n", fromID, toID, crc64);
+
+
+    SOCKET clt_soc = accept(srv_soc, NULL, NULL);
+
+    char file_crc64[128];
+    sprintf_s(file_crc64, 128, "./files/%llu", crc64);
+    FILE* fp;
+    fopen_s(&fp, file_crc64, "wb");
+
+    datalen = recv(clt_soc, WinChatBuf, 16, 0);
+
+    unsigned long long file_len = 0;
+
+    while (datalen != 16) {
+        datalen += recv(clt_soc, WinChatBuf, 16 - datalen, 0);
+    }
+
+    file_len = ntohll(*(unsigned long long*)(WinChatBuf + sizeof(unsigned long long)));
+
+    unsigned int i = 0;
+    time_t timep;
+
+    struct tm* p;
+
+    char time1[28];
+
+    time(&timep);
+
+    p = gmtime(&timep);
+
+    datalen = 0;
+
+    unsigned long long  recv_len = 0;
+    while (1) {
+        datalen = recv(clt_soc, WinChatBuf, WINCHAT_MAX_DATA, 0);
+        if (i == 0) {
+            LogPrintf(hWndLog, "start->%dm %ds\r\n", p->tm_min, p->tm_sec);
+            i = 1;
+        }
+        if (datalen <= 0) break;
+
+        recv_len += datalen;
+        datalen = fwrite(WinChatBuf, datalen, 1, fp);
+        fflush(fp);
+    }
+
+    time(&timep);
+    p = gmtime(&timep);
+    LogPrintf(hWndLog, "end->%dm %ds\r\n", p->tm_min, p->tm_sec);
+    fclose(fp);
+    shutdown(clt_soc, SD_RECEIVE);
+
+    char* start = WinChatBuf;
+    *(unsigned long long*)start = htonll(crc64);
+    start += sizeof(unsigned long long);
+    if (recv_len != file_len) {
+        *start = WC_FILE_ERR;
+    }
+    else {
+        *start = WC_FILE_SUC;
+    }
+
+    int send_len = sizeof(unsigned long long) + sizeof(char);
+    send(clt_soc, WinChatBuf, send_len, 0);
+    shutdown(clt_soc, SD_SEND);
+
+    closesocket(clt_soc);
+    closesocket(srv_soc);
+    return 0;
+}
+
 int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen) {
     WC_MSG_TXT_HDR msg_txt_hdr;
     struct sockaddr_in to_addr;
     int datalen;
-    
+
     int userIndex = 0;
     msg_txt_hdr.toID = ntohl(*((unsigned int*)(data + sizeof(unsigned int))));
     LogPrintf(hWndLog, "toID: %d\r\n", msg_txt_hdr.toID);
     userIndex = search_user(msg_txt_hdr.toID);
-    if (userIndex == -1 ) {
+    if (userIndex == -1) {
         LogPrintf(hWndLog, "ID为: %u 的用户处于离线状态\r\n", msg_txt_hdr.toID);
         return -1;
-    }else if (get_user_status_byindex(userIndex) != WC_USR_ON) {
+    }
+    else if (get_user_status_byindex(userIndex) != WC_USR_ON) {
         LogPrintf(hWndLog, "ID为: %u 的用户未登陆\r\n", msg_txt_hdr.toID);
         return -1;
     }
@@ -383,68 +510,69 @@ int WinChatMsgTxtProc(const char* data, unsigned short recvdatalen) {
     return userIndex;
 }
 
-int WinChatLoginProc(const char* data, unsigned short recvdatalen,struct sockaddr_in* peer_addr) {
+int WinChatLoginProc(const char* data, unsigned short recvdatalen, struct sockaddr_in* peer_addr) {
     WC_LOGIN_COMMON_HDR common_hdr;
     common_hdr.login_type = *(unsigned char*)data;
     int datalen, userIndex;
     unsigned int challenge = 0;
     char challenge_ok = 0;
     switch (common_hdr.login_type) {
-        case LOGIN_TYPE:
-            userIndex =LoginProcUser(data + WC_LOGIN_COMMON_HDR_LEN, peer_addr, WinChatPwdBuf,WINCHAT_MAX_PWD);
-            if (userIndex == -1) {
-                // 返回给客户端错误信息
-                // ...
-                return -1;
-            }
-            datalen = generate_auth_data(WinChatBuf + WC_MSG_HDR_LEN  + WC_LOGIN_COMMON_HDR_LEN);
-            
-            challenge = get_auth_code(WinChatBuf + WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN, WinChatPwdBuf);
-            update_user_challenge(userIndex, challenge);
-            Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, (unsigned short)(datalen + WC_LOGIN_COMMON_HDR_LEN));
-            *(WinChatBuf + WC_MSG_HDR_LEN) = CHALLENGE_TYPE;
-            datalen = sendto(udpSoc, WinChatBuf, datalen + +WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN,0,(sockaddr*)peer_addr, sizeof(sockaddr));
-            update_user_status_byIndex(userIndex, WC_USR_AUTH);
-            break;
-        case LOGIN_CHALLENGE_TYPE:
-            userIndex = search_user_by_ip_port(inet_ntoa(peer_addr->sin_addr), ntohs(peer_addr->sin_port));
-            if (userIndex == -1) {
-                // 返回给客户端错误信息
-                // ...
-                return -1;
-            }
-            //Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN,  WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN);
-            datalen = WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN;
-            //Debug_Log(data + WC_LOGIN_COMMON_HDR_LEN, 4 );
-            challenge = ntohl(*((unsigned int*)(data + WC_LOGIN_COMMON_HDR_LEN)));
-            
-            if (challenge != get_challenge_byindex(userIndex)) {       
-                LogPrintf(hWndLog, "用户: %s 认证失败，拒绝登陆\r\n", get_user_name_byindex(userIndex));
-                delete_user_byindex(userIndex);
-                *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_FAILED;
-                Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN);
-                challenge_ok = 0;
-            }else {
-                LogPrintf(hWndLog, "用户: %s 认证成功\r\n", get_user_name_byindex(userIndex));
-                update_user_status_byIndex(userIndex, WC_USR_ON);
-                *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_SUCCESS;
-                *((unsigned int*)(WinChatBuf + datalen)) = htonl(get_userid_byindex(userIndex));
-                LogPrintf(hWndLog, "用户: %s 的userid:%u\r\n", get_user_name_byindex(userIndex),get_userid_byindex(userIndex));
-                datalen += sizeof(unsigned int);
-                Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN+ sizeof(unsigned int));
-                challenge_ok = 1;
-            }
-            datalen = sendto(udpSoc, WinChatBuf, datalen, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
-            if (challenge_ok) {
-                Send_Online_UsersInfo();
-                //Send_Online_Announcement("a new user goes online !", strlen("a new user goes online !"));
-            }
-            break;
+    case LOGIN_TYPE:
+        userIndex = LoginProcUser(data + WC_LOGIN_COMMON_HDR_LEN, peer_addr, WinChatPwdBuf, WINCHAT_MAX_PWD);
+        if (userIndex == -1) {
+            // 返回给客户端错误信息
+            // ...
+            return -1;
+        }
+        datalen = generate_auth_data(WinChatBuf + WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN);
+
+        challenge = get_auth_code(WinChatBuf + WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN, WinChatPwdBuf);
+        update_user_challenge(userIndex, challenge);
+        Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, (unsigned short)(datalen + WC_LOGIN_COMMON_HDR_LEN));
+        *(WinChatBuf + WC_MSG_HDR_LEN) = CHALLENGE_TYPE;
+        datalen = sendto(udpSoc, WinChatBuf, datalen + +WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+        update_user_status_byIndex(userIndex, WC_USR_AUTH);
+        break;
+    case LOGIN_CHALLENGE_TYPE:
+        userIndex = search_user_by_ip_port(inet_ntoa(peer_addr->sin_addr), ntohs(peer_addr->sin_port));
+        if (userIndex == -1) {
+            // 返回给客户端错误信息
+            // ...
+            return -1;
+        }
+        //Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN,  WC_LOGIN_COMMON_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN);
+        datalen = WC_MSG_HDR_LEN + WC_LOGIN_COMMON_HDR_LEN;
+        //Debug_Log(data + WC_LOGIN_COMMON_HDR_LEN, 4 );
+        challenge = ntohl(*((unsigned int*)(data + WC_LOGIN_COMMON_HDR_LEN)));
+
+        if (challenge != get_challenge_byindex(userIndex)) {
+            LogPrintf(hWndLog, "用户: %s 认证失败，拒绝登陆\r\n", get_user_name_byindex(userIndex));
+            delete_user_byindex(userIndex);
+            *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_FAILED;
+            Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN);
+            challenge_ok = 0;
+        }
+        else {
+            LogPrintf(hWndLog, "用户: %s 认证成功\r\n", get_user_name_byindex(userIndex));
+            update_user_status_byIndex(userIndex, WC_USR_ON);
+            *(WinChatBuf + WC_MSG_HDR_LEN) = LOGIN_SUCCESS;
+            *((unsigned int*)(WinChatBuf + datalen)) = htonl(get_userid_byindex(userIndex));
+            LogPrintf(hWndLog, "用户: %s 的userid:%u\r\n", get_user_name_byindex(userIndex), get_userid_byindex(userIndex));
+            datalen += sizeof(unsigned int);
+            Pack_Common_Hdr(WinChatBuf, WC_TYPE_LOGIN, WC_LOGIN_COMMON_HDR_LEN + sizeof(unsigned int));
+            challenge_ok = 1;
+        }
+        datalen = sendto(udpSoc, WinChatBuf, datalen, 0, (sockaddr*)peer_addr, sizeof(sockaddr));
+        if (challenge_ok) {
+            Send_Online_UsersInfo();
+            //Send_Online_Announcement("a new user goes online !", strlen("a new user goes online !"));
+        }
+        break;
     }
     return 0;
 }
 
-int LoginProcUser(const char* namedata, struct sockaddr_in* peer_addr,char * userpwd,int pwdlen) {
+int LoginProcUser(const char* namedata, struct sockaddr_in* peer_addr, char* userpwd, int pwdlen) {
     WC_LOGIN_HDR login_hdr;
     int userid = 0;
     int res;
@@ -457,11 +585,11 @@ int LoginProcUser(const char* namedata, struct sockaddr_in* peer_addr,char * use
         return -1;
     }
     db_get_userpwd(username, userpwd, pwdlen);
-    
+
     res = search_user(userid);
     if (res != -1) delete_user_byindex(res);
     res = add_user(username, userid, inet_ntoa(peer_addr->sin_addr),
-            ntohs(peer_addr->sin_port));
+        ntohs(peer_addr->sin_port));
     return res;
 }
 
@@ -470,10 +598,10 @@ void WinChatShowAllUsers() {
     int userid;
     char** pres = NULL;
     db_get_useinfo(NULL, &nrow, &ncol, &pres);
-    LogPrintf(hWndUser,"%s\t%s\r\n","用户ID","用户名");
+    LogPrintf(hWndUser, "%s\t%s\r\n", "用户ID", "用户名");
     for (i = 0; i < nrow; i++) {
         userid = atoi(*(pres + (i + 1) * ncol));
-        LogPrintf(hWndUser,"%05d\t%s\r\n", userid, *(pres+(i + 1) * ncol+1));
+        LogPrintf(hWndUser, "%05d\t%s\r\n", userid, *(pres + (i + 1) * ncol + 1));
     }
     sqldb_free_table(pres);
 }
@@ -481,7 +609,7 @@ void WinChatShowAllUsers() {
 
 void Debug_Log(const char* data, unsigned int datalen) {
     LogPrintf(hWndLog, "------------\r\n");
-    for (unsigned short  i = 0; i < datalen; i++) {
+    for (unsigned short i = 0; i < datalen; i++) {
         LogPrintf(hWndLog, "%d\r\n", *(data + i));
     }
     LogPrintf(hWndLog, "------------\r\n");
@@ -497,8 +625,8 @@ void Pack_Common_Hdr(char* buf, unsigned char type, unsigned short len) {
 void Send_Online_UsersInfo() {
     // 可以计算出实际所需的空间
     //unsigned int space = WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN + WC_GRP_ITEM_LEN * get_online_usersnum() + get_online_namespace();
-    
-    unsigned int datalen = get_online_userinfo(WinChatBuf+WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
+
+    unsigned int datalen = get_online_userinfo(WinChatBuf + WC_GRP_LIST_HDR_LEN + WC_MSG_HDR_LEN) + WC_GRP_LIST_HDR_LEN;
     Pack_Common_Hdr(WinChatBuf, WC_TYPE_GRP_LST, datalen);
     char* grplist = WinChatBuf + WC_MSG_HDR_LEN;
     *(grplist) = WC_LIST_ONLINE;
@@ -510,8 +638,8 @@ void Send_Online_UsersInfo() {
 }
 
 
-void Send_Online_Announcement(const char * announ,unsigned short announ_len) {
-    LogPrintf(hWndLog, "%d,%s\r\n",  announ_len, announ);
+void Send_Online_Announcement(const char* announ, unsigned short announ_len) {
+    LogPrintf(hWndLog, "%d,%s\r\n", announ_len, announ);
     memcpy_s(WinChatBuf + WC_MSG_TXT_HDR_LEN + WC_MSG_HDR_LEN, announ_len, announ, announ_len);
     int datalen = WC_MSG_TXT_HDR_LEN + announ_len;
     Pack_Common_Hdr(WinChatBuf, WC_TYPE_MSG_TXT, datalen);
@@ -520,7 +648,7 @@ void Send_Online_Announcement(const char * announ,unsigned short announ_len) {
     ann += sizeof(unsigned int) * 2;
     *(unsigned short*)ann = htons(announ_len);
 
-    sendto_online_announcement(udpSoc, WinChatBuf, datalen+ WC_MSG_HDR_LEN);
+    sendto_online_announcement(udpSoc, WinChatBuf, datalen + WC_MSG_HDR_LEN);
 
 }
 

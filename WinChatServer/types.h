@@ -69,10 +69,15 @@ typedef struct WC_GRP_ITEM {
 #define WC_GRP_ITEM_LEN (sizeof(unsigned long long) + sizeof(unsigned short))
 
 enum GrpListType {
-	WC_LIST_MEM		,
-	WC_LIST_FILE	,
-	WC_LIST_ONLINE  ,
+	WC_LIST_MEM,
+	WC_LIST_FILE,
+	WC_LIST_ONLINE,
 	WC_LIST_NEWMSG
+};
+
+enum FileStatueType {
+	WC_FILE_SUC,
+	WC_FILE_ERR
 };
 
 
